@@ -1,3 +1,30 @@
 spring:
   application:
     name: company-ms
+  datasource:
+    url: jdbc:postgresql://localhost:5432/company-ms
+    username: admin
+    password: password123
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+management:
+  info:
+    env:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+info:
+  app:
+    anyProp: "anyValue"
+
+
+server:
+  port: 8081
