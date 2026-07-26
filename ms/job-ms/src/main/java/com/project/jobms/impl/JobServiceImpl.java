@@ -3,8 +3,9 @@ package com.project.jobms.impl;
 import com.project.jobms.Job;
 import com.project.jobms.JobRepository;
 import com.project.jobms.JobService;
-import com.project.jobms.JobWithCompanyDto;
+import com.project.jobms.dto.JobWithCompanyDto;
 import com.project.jobms.external.Company;
+import com.project.jobms.mapper.JobMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -25,6 +26,13 @@ public class JobServiceImpl implements JobService {
         return jobRepository.findById(id).orElseGet(() -> null);
     }
 
+    private Company fetchCompany(Long companyId) {
+        return restTemplate
+                .getForObject("http://company-ms/companies/"+companyId, Company.class);
+    }
+
+    private
+
     @Override
     public List<JobWithCompanyDto> findAll() {
         List<JobWithCompanyDto> result = new ArrayList<>();
@@ -32,11 +40,10 @@ public class JobServiceImpl implements JobService {
 
         var companyMap = jobs.stream().map(job -> job.getCompanyId()).distinct()
                 .filter(companyId -> companyId != null)
-                .map(companyId -> restTemplate
-                        .getForObject("http://company-ms/companies/"+companyId, Company.class))
+                .map(this::fetchCompany)
                 .collect(Collectors.toMap(Company::id, Function.identity()));
 
-        jobs.forEach(job -> result.add(new JobWithCompanyDto(job, companyMap.get(job.getCompanyId()))));
+        jobs.forEach(job -> result.add(JobMapper.mapToJobWithCompanyDto(job, companyMap.get(job.getCompanyId()))));
 
         return result;
     }
@@ -49,8 +56,17 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public Job getJobById(Long id) {
-        return findJobById(id);
+    public JobWithCompanyDto getJobById(Long id) {
+        var job = findJobById(id);
+        if(job != null) {
+            if(job.getCompanyId() != null) {
+                var company = fetchCompany(job.getCompanyId());
+                return JobMapper.mapToJobWithCompanyDto(job, company);
+            }
+            return JobMapper.mapToJobWithCompanyDto(job, null);
+
+        }
+        return null;
     }
 
     @Override

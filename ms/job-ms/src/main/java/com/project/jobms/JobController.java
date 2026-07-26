@@ -1,5 +1,6 @@
 package com.project.jobms;
 
+import com.project.jobms.dto.JobWithCompanyDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,10 +27,10 @@ public class JobController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Job> getJobById(@PathVariable Long id) {
-        Job job = jobService.getJobById(id);
-        if(job != null) {
-            return ResponseEntity.ok(job);
+    public ResponseEntity<JobWithCompanyDto> getJobById(@PathVariable Long id) {
+        var jobWithCompanyDto = jobService.getJobById(id);
+        if(jobWithCompanyDto != null) {
+            return ResponseEntity.ok(jobWithCompanyDto);
         }
         return ResponseEntity.notFound().build();
 
