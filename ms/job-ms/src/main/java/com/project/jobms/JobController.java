@@ -15,7 +15,7 @@ public class JobController {
     private final JobService jobService;
 
     @GetMapping()
-    public ResponseEntity<List<Job>> findAll() {
+    public ResponseEntity<List<JobWithCompanyDto>> findAll() {
         return ResponseEntity.ok(jobService.findAll());
     }
 

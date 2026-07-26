@@ -3,12 +3,16 @@ package com.project.jobms.impl;
 import com.project.jobms.Job;
 import com.project.jobms.JobRepository;
 import com.project.jobms.JobService;
+import com.project.jobms.JobWithCompanyDto;
 import com.project.jobms.external.Company;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,11 +25,21 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public List<Job> findAll() {
+    public List<JobWithCompanyDto> findAll() {
+        List<JobWithCompanyDto> result = new ArrayList<>();
         RestTemplate restTemplate = new RestTemplate();
-        var company = restTemplate.getForObject("http://localhost:8081/companies/1", Company.class);
-        System.out.println("Company Name: " + company.getName());
-        return jobRepository.findAll();
+
+        var jobs = jobRepository.findAll();
+
+        var companyMap = jobs.stream().map(job -> job.getCompanyId()).distinct()
+                .filter(companyId -> companyId != null)
+                .map(companyId -> restTemplate
+                        .getForObject("http://localhost:8081/companies/"+companyId, Company.class))
+                .collect(Collectors.toMap(Company::id, Function.identity()));
+
+        jobs.forEach(job -> result.add(new JobWithCompanyDto(job, companyMap.get(job.getCompanyId()))));
+
+        return result;
     }
 
     @Override
