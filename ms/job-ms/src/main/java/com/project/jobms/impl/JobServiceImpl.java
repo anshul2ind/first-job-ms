@@ -3,8 +3,10 @@ package com.project.jobms.impl;
 import com.project.jobms.Job;
 import com.project.jobms.JobRepository;
 import com.project.jobms.JobService;
+import com.project.jobms.external.Company;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -20,6 +22,9 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public List<Job> findAll() {
+        RestTemplate restTemplate = new RestTemplate();
+        var company = restTemplate.getForObject("http://localhost:8081/companies/1", Company.class);
+        System.out.println("Company Name: " + company.getName());
         return jobRepository.findAll();
     }
 
