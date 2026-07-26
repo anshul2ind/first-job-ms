@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
+    private final RestTemplate restTemplate;
 
     private Job findJobById(Long id) {
         return jobRepository.findById(id).orElseGet(() -> null);
@@ -27,14 +28,12 @@ public class JobServiceImpl implements JobService {
     @Override
     public List<JobWithCompanyDto> findAll() {
         List<JobWithCompanyDto> result = new ArrayList<>();
-        RestTemplate restTemplate = new RestTemplate();
-
         var jobs = jobRepository.findAll();
 
         var companyMap = jobs.stream().map(job -> job.getCompanyId()).distinct()
                 .filter(companyId -> companyId != null)
                 .map(companyId -> restTemplate
-                        .getForObject("http://localhost:8081/companies/"+companyId, Company.class))
+                        .getForObject("http://company-ms/companies/"+companyId, Company.class))
                 .collect(Collectors.toMap(Company::id, Function.identity()));
 
         jobs.forEach(job -> result.add(new JobWithCompanyDto(job, companyMap.get(job.getCompanyId()))));
