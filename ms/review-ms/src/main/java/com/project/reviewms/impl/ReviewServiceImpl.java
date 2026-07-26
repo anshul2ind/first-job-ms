@@ -29,18 +29,13 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public Review getById(Long id) {
-        return null;
+    public Review getById(Long reviewId) {
+        return reviewRepository.findById(reviewId).orElse(null);
     }
 
     @Override
-    public Review getByCompanyIdAndReviewId(Long companyId, Long reviewId) {
-        return reviewRepository.findByCompanyIdAndId(companyId, reviewId).orElse(null);
-    }
-
-    @Override
-    public boolean deleteByCompanyIdAndReviewId(Long companyId, Long reviewId) {
-        if(reviewRepository.existsByCompanyIdAndId(companyId, reviewId)) {
+    public boolean deleteById(Long reviewId) {
+        if(reviewRepository.existsById(reviewId)) {
             reviewRepository.deleteById(reviewId);
             return true;
         }
@@ -48,8 +43,8 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public boolean updateByCompanyIdAndReviewId(Long companyId, Long reviewId, Review review) {
-        var reviewEntity = reviewRepository.findByCompanyIdAndId(companyId, reviewId).orElse(null);
+    public boolean updateById(Long reviewId, Review review) {
+        var reviewEntity = reviewRepository.findById(reviewId).orElse(null);
         if(reviewEntity != null) {
             reviewEntity.setTitle(review.getTitle());
             reviewEntity.setDescription(review.getDescription());
