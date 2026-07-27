@@ -3,6 +3,8 @@ package com.project.jobms.impl;
 import com.project.jobms.Job;
 import com.project.jobms.JobRepository;
 import com.project.jobms.JobService;
+import com.project.jobms.client.CompanyClient;
+import com.project.jobms.client.ReviewClient;
 import com.project.jobms.dto.JobWithCompanyDto;
 import com.project.jobms.external.Company;
 import com.project.jobms.external.Review;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,6 +27,8 @@ import java.util.stream.Collectors;
 public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
+    private final CompanyClient companyClient;
+    private final ReviewClient reviewClient;
     private final RestTemplate restTemplate;
 
     private Job findJobById(Long id) {
@@ -34,21 +39,14 @@ public class JobServiceImpl implements JobService {
         if(companyId == null)
             return null;
 
-        return restTemplate
-                .getForObject("http://company-ms/companies/"+companyId, Company.class);
+        return companyClient.getCompanyById(companyId);
     }
 
     private List<Review> fetchReviews(Long companyId) {
         if(companyId == null)
-            return null;
+            return Collections.emptyList();
 
-        ResponseEntity<List<Review>> reviewsResponse = restTemplate.exchange(
-                "http://review-ms/reviews?companyId=" + companyId,
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<List<Review>>() {}
-        );
-        return reviewsResponse.getBody();
+        return reviewClient.getCompanyReviews(companyId);
     }
 
     @Override
