@@ -1,5 +1,6 @@
 package com.project.jobms;
 
+import com.project.jobms.dto.JobDetailsResponseDto;
 import com.project.jobms.dto.JobWithCompanyDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,7 @@ public class JobController {
     private final JobService jobService;
 
     @GetMapping()
-    public ResponseEntity<List<JobWithCompanyDto>> findAll() {
+    public ResponseEntity<List<JobDetailsResponseDto>> findAll() {
         return ResponseEntity.ok(jobService.findAll());
     }
 
@@ -27,7 +28,7 @@ public class JobController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<JobWithCompanyDto> getJobById(@PathVariable Long id) {
+    public ResponseEntity<JobDetailsResponseDto> getJobById(@PathVariable Long id) {
         var jobWithCompanyDto = jobService.getJobById(id);
         if(jobWithCompanyDto != null) {
             return ResponseEntity.ok(jobWithCompanyDto);

@@ -5,14 +5,13 @@ import com.project.jobms.JobRepository;
 import com.project.jobms.JobService;
 import com.project.jobms.client.CompanyClient;
 import com.project.jobms.client.ReviewClient;
+import com.project.jobms.dto.JobDetailsResponseDto;
 import com.project.jobms.dto.JobWithCompanyDto;
 import com.project.jobms.external.Company;
 import com.project.jobms.external.Review;
 import com.project.jobms.mapper.JobMapper;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -29,6 +28,7 @@ public class JobServiceImpl implements JobService {
     private final JobRepository jobRepository;
     private final CompanyClient companyClient;
     private final ReviewClient reviewClient;
+    private final JobMapper jobMapper;
     private final RestTemplate restTemplate;
 
     private Job findJobById(Long id) {
@@ -48,10 +48,11 @@ public class JobServiceImpl implements JobService {
 
         return reviewClient.getCompanyReviews(companyId);
     }
-
+//    @CircuitBreaker(name = "companyBreaker", fallbackMethod = "findAllFallback")
+    @RateLimiter(name = "getAllJobsRateLimiter", fallbackMethod = "findAllRateLimiterFallback")
     @Override
-    public List<JobWithCompanyDto> findAll() {
-        List<JobWithCompanyDto> result = new ArrayList<>();
+    public List<JobDetailsResponseDto> findAll() {
+        List<JobDetailsResponseDto> result = new ArrayList<>();
         var jobs = jobRepository.findAll();
 
         var distinctCompanyIds = jobs.stream().map(job -> job.getCompanyId()).distinct()
@@ -68,9 +69,25 @@ public class JobServiceImpl implements JobService {
                 .collect(Collectors.toMap(Function.identity(), this::fetchReviews));
 
         jobs.forEach(job -> result.add(
-                JobMapper
-                        .mapToJobWithCompanyDto(job, companyMap.get(job.getCompanyId()), reviewsMap.getOrDefault(job.getCompanyId(), List.of()))));
+                jobMapper
+                        .mapToJobDetailsResponseDto(job, companyMap.get(job.getCompanyId()), reviewsMap.getOrDefault(job.getCompanyId(), List.of()))));
 
+        return result;
+    }
+
+    List<JobDetailsResponseDto> findAllFallback(Exception ex) {
+        List<JobDetailsResponseDto> result = new ArrayList<>();
+        var job = new Job();
+        job.setTitle("Company or Review Service  not accessible");
+        result.add(jobMapper.mapToJobDetailsResponseDto(job, null, Collections.emptyList()));
+        return result;
+    }
+
+    List<JobDetailsResponseDto> findAllRateLimiterFallback(Exception ex) {
+        List<JobDetailsResponseDto> result = new ArrayList<>();
+        var job = new Job();
+        job.setTitle("API Rate limit exhausted accessible");
+        result.add(jobMapper.mapToJobDetailsResponseDto(job, null, Collections.emptyList()));
         return result;
     }
 
@@ -82,15 +99,15 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public JobWithCompanyDto getJobById(Long id) {
+    public JobDetailsResponseDto getJobById(Long id) {
         var job = findJobById(id);
         if(job != null) {
             if(job.getCompanyId() != null) {
                 var company = fetchCompany(job.getCompanyId());
                 var reviews = fetchReviews(job.getCompanyId());
-                return JobMapper.mapToJobWithCompanyDto(job, company, reviews);
+                return jobMapper.mapToJobDetailsResponseDto(job, company, reviews);
             }
-            return JobMapper.mapToJobWithCompanyDto(job, null, List.of());
+            return jobMapper.mapToJobDetailsResponseDto(job, null, List.of());
 
         }
         return null;

@@ -1,13 +1,14 @@
 package com.project.jobms;
 
+import com.project.jobms.dto.JobDetailsResponseDto;
 import com.project.jobms.dto.JobWithCompanyDto;
 
 import java.util.List;
 
 public interface JobService {
-    public List<JobWithCompanyDto> findAll();
+    public List<JobDetailsResponseDto> findAll();
     public String createJob(Job job);
-    public JobWithCompanyDto getJobById(Long id);
+    public JobDetailsResponseDto getJobById(Long id);
     public boolean deleteJobById(Long id);
     public boolean updateJobById(Long id, Job updateJob);
 }

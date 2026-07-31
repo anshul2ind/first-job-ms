@@ -11,6 +11,9 @@ spring:
       ddl-auto: update
     show-sql: true
 management:
+  health:
+    circuitbreakers:
+      enabled: true
   tracing:
     sampling:
       probability: 1.0
@@ -43,4 +46,47 @@ eureka:
     fetch-registry: true
     service-url:
       default-zone: "http://localhost:8761/eureka/"
+
+resilience4j:
+  ratelimiter:
+    instances:
+      getAllJobsRateLimiter:
+        timeout-duration: 1s
+        limit-for-period: 1
+        limit-refresh-period: 10S
+  retry:
+    instances:
+      reviewRetry:
+        max-attempts: 3
+        wait-duration: 2s
+        retry-exceptions:
+          - feign.FeignException.ServiceUnavailable # Clean nested class notation
+          - feign.RetryableException
+          - feign.FeignException.GatewayTimeout
+          - feign.FeignException.BadGateway
+          - feign.FeignException.TooManyRequests
+          - java.io.IOException
+          - java.net.ConnectException
+        ignore-exceptions:
+          - feign.FeignException.BadRequest
+          - feign.FeignException.Unauthorized
+          - feign.FeignException.Forbidden
+          - feign.FeignException.NotFound
+          - feign.FeignException.MethodNotAllowed
+          - feign.FeignException.Conflict
+  circuitbreaker:
+    configs:
+      default:
+        register-health-indicator: true
+    instances:
+      companyBreaker:
+        base-config: default
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        automatic-transition-from-open-to-half-open-enabled: true
+        sliding-window-type: count_based
+
 
