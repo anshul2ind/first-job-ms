@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: first-job-ms
+
+resources:
+  - namespace.yaml
+  - postgres/pvc.yaml
+  - postgres/deployment.yaml
+  - postgres/service.yaml
+  - rabbitmq/deployment.yaml
+  - rabbitmq/service.yaml
+  - zipkin/deployment.yaml
+  - zipkin/service.yaml
+  - service-reg/deployment.yaml
+  - service-reg/service.yaml
+  - config-server/deployment.yaml
+  - config-server/service.yaml
+  - company-ms/deployment.yaml
+  - company-ms/service.yaml
+  - review-ms/deployment.yaml
+  - review-ms/service.yaml
+  - job-ms/deployment.yaml
+  - job-ms/service.yaml
+  - gateway/deployment.yaml
+  - gateway/service.yaml
+
+configMapGenerator:
+  - name: app-config
+    literals:
+      - EUREKA_DEFAULT_ZONE=http://service-reg:8761/eureka/
+      - ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - POSTGRES_HOST=postgres
+      - RABBITMQ_HOST=rabbitmq
+  - name: postgres-init-scripts
+    files:
+      - postgres/init-databases.sql
+
+secretGenerator:
+  - name: app-secrets
+    envs:
+      - .env

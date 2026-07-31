@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-reg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-reg
+  template:
+    metadata:
+      labels:
+        app: service-reg
+    spec:
+      containers:
+        - name: service-reg
+          image: first-job-ms-service-reg:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8761
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 45
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 75
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6

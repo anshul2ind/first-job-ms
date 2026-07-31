@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+    spec:
+      containers:
+        - name: config-server
+          image: first-job-ms-config-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8880
+          env:
+            - name: EUREKA_DEFAULT_ZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: EUREKA_DEFAULT_ZONE
+          args:
+            - "--eureka.client.service-url.defaultZone=$(EUREKA_DEFAULT_ZONE)"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8880
+            initialDelaySeconds: 45
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8880
+            initialDelaySeconds: 75
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
