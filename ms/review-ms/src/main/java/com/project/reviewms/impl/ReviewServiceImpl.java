@@ -1,17 +1,22 @@
 package com.project.reviewms.impl;
 
-import com.project.reviewms.Review;
-import com.project.reviewms.ReviewRepository;
-import com.project.reviewms.ReviewService;
+import com.project.reviewms.*;
+import com.project.reviewms.event.CompanyRatingUpdatedEvent;
+import com.project.reviewms.outbox.OutboxService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
 public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
+    private final RatingAggregationService ratingAggregationService;
+    private final OutboxService outboxService;
 
     @Override
     public List<Review> findAllByCompanyId(Long companyId) {
@@ -19,10 +24,25 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @Transactional
     public boolean create(Long companyId, Review review) {
         if(companyId != null) {
             review.setCompanyId(companyId);
             reviewRepository.save(review);
+            var ratingSummary = ratingAggregationService.calculate(companyId);
+            if(ratingSummary != null) {
+            var event = CompanyRatingUpdatedEvent.builder()
+                    .eventId(UUID.randomUUID())
+                    .averageRating(ratingSummary.getAverageRating())
+                    .reviewCount(ratingSummary.getReviewCount())
+                    .occurredAt(Instant.now())
+                    .companyId(companyId)
+                    .build();
+
+            outboxService.saveEvent(event);
+
+            }
+
             return true;
         }
         return false;

@@ -15,4 +15,8 @@ public class Company {
     private Long id;
     private String name;
     private String description;
+    @Column(nullable = false)
+    private Double averageRating = 0.0D;
+    @Column(nullable = false)
+    private Long reviewCount = 0L;
 }

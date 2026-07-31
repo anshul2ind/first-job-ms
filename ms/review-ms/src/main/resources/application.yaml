@@ -10,6 +10,12 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+# rabbitmq
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
 management:
   tracing:
     sampling:
@@ -40,5 +46,4 @@ eureka:
     fetch-registry: true
     service-url:
       default-zone: "http://localhost:8761/eureka/"
-
 

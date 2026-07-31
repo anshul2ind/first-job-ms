@@ -3,6 +3,7 @@ package com.project.companyms.impl;
 import com.project.companyms.Company;
 import com.project.companyms.CompanyRepository;
 import com.project.companyms.CompanyService;
+import com.project.companyms.event.CompanyRatingUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,16 @@ public class CompanyServiceImpl implements CompanyService {
     public String create(Company company) {
         companyRepository.save(company);
         return "Successfully saved company";
+    }
+
+    @Override
+    public void updateRating(CompanyRatingUpdatedEvent event) {
+        var company = findById(event.companyId());
+        if(company != null) {
+            company.setAverageRating(event.averageRating());
+            company.setReviewCount(event.reviewCount());
+            companyRepository.save(company);
+        }
     }
 
     @Override
