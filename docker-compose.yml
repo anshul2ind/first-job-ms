@@ -1,0 +1,147 @@
+services:
+  postgres:
+    image: postgres:18.3
+    container_name: first-job-ms-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_net
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: first-job-ms-rabbitmq
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_net
+
+  zipkin:
+    image: openzipkin/zipkin:3.6.0
+    container_name: first-job-ms-zipkin
+    ports:
+      - "9412:9411"
+    environment:
+      - STORAGE_TYPE=mem
+    restart: always
+    networks:
+      - app_net
+
+  service-reg:
+    build: ./core/service-reg
+    container_name: service-reg
+    ports:
+      - "8761:8761"
+    networks:
+      - app_net
+
+  config-server:
+    build: ./core/config-server
+    container_name: config-server
+    ports:
+      - "8880:8880"
+    command: ["--eureka.client.service-url.defaultZone=http://service-reg:8761/eureka/"]
+    depends_on:
+      - service-reg
+    networks:
+      - app_net
+
+  company-ms:
+    build: ./ms/company-ms
+    container_name: company-ms
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/company-ms
+      SPRING_RABBITMQ_HOST: rabbitmq
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    command: ["--eureka.client.service-url.defaultZone=http://service-reg:8761/eureka/"]
+    depends_on:
+      service-reg:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app_net
+
+  review-ms:
+    build: ./ms/review-ms
+    container_name: review-ms
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/review-ms
+      SPRING_RABBITMQ_HOST: rabbitmq
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    command: ["--eureka.client.service-url.defaultZone=http://service-reg:8761/eureka/"]
+    depends_on:
+      service-reg:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app_net
+
+  job-ms:
+    build: ./ms/job-ms
+    container_name: job-ms
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job-ms
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    command: ["--eureka.client.service-url.defaultZone=http://service-reg:8761/eureka/"]
+    depends_on:
+      service-reg:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      company-ms:
+        condition: service_started
+      review-ms:
+        condition: service_started
+    networks:
+      - app_net
+
+  gateway:
+    build: ./core/gateway
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    command: ["--eureka.client.service-url.defaultZone=http://service-reg:8761/eureka/"]
+    depends_on:
+      - service-reg
+      - company-ms
+      - job-ms
+      - review-ms
+    networks:
+      - app_net
+
+volumes:
+  postgres_data:
+
+networks:
+  app_net:
+    driver: bridge
