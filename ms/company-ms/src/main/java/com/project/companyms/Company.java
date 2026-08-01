@@ -1,5 +1,6 @@
 package com.project.companyms;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,4 +20,7 @@ public class Company {
     private Double averageRating = 0.0D;
     @Column(nullable = false)
     private Long reviewCount = 0L;
+
+    @Column(nullable = false)
+    private String createdBy;
 }

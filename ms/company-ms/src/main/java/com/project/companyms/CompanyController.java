@@ -3,6 +3,7 @@ package com.project.companyms;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class CompanyController {
         return ResponseEntity.ok(companyService.findAll());
     }
 
+    @PreAuthorize("hasAuthority('ADMIN' or hasAuthority('EMPLOYER'))")
     @PostMapping()
     public ResponseEntity<String> create(@RequestBody Company company) {
         companyService.create(company);

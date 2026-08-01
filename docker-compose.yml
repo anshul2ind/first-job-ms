@@ -18,6 +18,27 @@ services:
     networks:
       - app_net
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: first-job-ms-keycloak-server
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: adminpassword
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak-db
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: password123
+    ports:
+      - "9999:8080"
+    volumes:
+      - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app_net
+
   rabbitmq:
     image: rabbitmq:4-management
     container_name: first-job-ms-rabbitmq
@@ -71,6 +92,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/company-ms
       SPRING_RABBITMQ_HOST: rabbitmq
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/jobboard
     command: ["--eureka.client.service-url.defaultZone=http://service-reg:8761/eureka/"]
     depends_on:
       service-reg:
@@ -79,6 +101,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     networks:
       - app_net
 
@@ -91,6 +115,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/review-ms
       SPRING_RABBITMQ_HOST: rabbitmq
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/jobboard
     command: ["--eureka.client.service-url.defaultZone=http://service-reg:8761/eureka/"]
     depends_on:
       service-reg:
@@ -99,6 +124,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     networks:
       - app_net
 
@@ -110,6 +137,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job-ms
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/jobboard
     command: ["--eureka.client.service-url.defaultZone=http://service-reg:8761/eureka/"]
     depends_on:
       service-reg:
@@ -119,6 +147,8 @@ services:
       company-ms:
         condition: service_started
       review-ms:
+        condition: service_started
+      keycloak:
         condition: service_started
     networks:
       - app_net

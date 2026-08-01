@@ -4,6 +4,8 @@ import com.project.companyms.Company;
 import com.project.companyms.CompanyRepository;
 import com.project.companyms.CompanyService;
 import com.project.companyms.event.CompanyRatingUpdatedEvent;
+import com.project.companyms.exception.AccessDeniedException;
+import com.project.companyms.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     public String create(Company company) {
+        company.setCreatedBy(SecurityUtils.currentSubject());
         companyRepository.save(company);
         return "Successfully saved company";
     }
@@ -45,8 +48,10 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     public boolean deleteById(Long id) {
+        var company = getById(id);
 
-        if(companyRepository.existsById(id)) {
+        if(company != null) {
+            checkOwnership(company);
             companyRepository.deleteById(id);
             return true;
         }
@@ -57,11 +62,30 @@ public class CompanyServiceImpl implements CompanyService {
     public boolean updateById(Long id, Company company) {
         Company toBeUpdated = findById(id);
         if(toBeUpdated != null) {
+            checkOwnership(toBeUpdated);
             toBeUpdated.setDescription(company.getDescription());
             toBeUpdated.setName(company.getName());
             companyRepository.save(toBeUpdated);
             return true;
         }
         return false;
+    }
+
+    private void checkOwnership(Company company){
+
+        boolean admin =
+                SecurityUtils.hasAuthority("ADMIN");
+
+
+        boolean owner =
+                company.getCreatedBy()
+                        .equals(SecurityUtils.currentSubject());
+
+
+        if(!admin && !owner){
+            throw new AccessDeniedException(
+                    "Not allowed"
+            );
+        }
     }
 }
